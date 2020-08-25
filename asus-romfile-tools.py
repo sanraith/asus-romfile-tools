@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-import argparse, struct, random
+import argparse
+import struct
+import random
 
 
 # Header format for use in struct
@@ -12,7 +14,8 @@ MAGIC_STR = 'EnCrYpTRomFIle\x00\x00'
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Decrypt and encrypt setting backup files (romfile.cfg) from certain ASUS routers')
+    parser = argparse.ArgumentParser(
+        description='Decrypt and encrypt setting backup files (romfile.cfg) from certain ASUS routers')
     parser.add_argument('action', metavar='action', type=str, choices=('encrypt', 'decrypt'),
                         help='action (encrypt or decrypt)')
     parser.add_argument('in_file', metavar='input', type=str,
@@ -30,16 +33,18 @@ def main():
     elif args.action == 'encrypt':
         encrypt(args.in_file, args.out_file, args.model, args.rand)
 
+
 def decrypt(in_file, out_file):
     with open(in_file, 'r') as content_file:
         content = bytearray(content_file.read())
 
-    (model, magic, length, key) = struct.unpack(HEADER, content[:HEADER_SIZE])
-    print "Model: %s\nMagic: %s\nLength: %d\nKey: %s" % (model, magic, length, key)
-    
+    (hdr, length, key) = struct.unpack(
+        "!4sii", content[:4] + "\x00" + content[4:7] + "\x00\x00\x00" + content[7:8])
+    print "Hdr: %s\nLength: %d\nKey: %d" % (hdr, length, key)
+
     data = content[HEADER_SIZE:]
     if len(data) != length:
-        print "Warning: file length (%d) does not match length in header (%d)" % (len(encrypted), length)
+        print "Warning: file length (%d) does not match length in header (%d)" % (len(data), length)
 
     for i in xrange(0, len(data)):
         byte = data[i]
@@ -51,6 +56,7 @@ def decrypt(in_file, out_file):
 
     with open(out_file, 'w') as content_file:
         content_file.write(data)
+
 
 def encrypt(in_file, out_file, model, key):
     with open(in_file, 'r') as content_file:
@@ -68,7 +74,7 @@ def encrypt(in_file, out_file, model, key):
     for i in xrange(0, length):
         byte = content[i]
         if byte == 0:
-            byte = 0xff # 0xfd, 0xfe or 0xff will work
+            byte = 0xff  # 0xfd, 0xfe or 0xff will work
         else:
             byte = (0xff - byte + key) & 0xff
         content[i] = chr(byte)
@@ -76,6 +82,7 @@ def encrypt(in_file, out_file, model, key):
     with open(out_file, 'w') as content_file:
         content_file.write(header)
         content_file.write(content)
-    
+
+
 if __name__ == '__main__':
     main()
