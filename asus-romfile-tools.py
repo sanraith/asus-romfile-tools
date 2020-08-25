@@ -69,7 +69,8 @@ def encrypt(in_file, out_file, model, key):
 
     print "Length: %d\nKey: %s" % (length, key)
 
-    header = struct.pack(HEADER, model, MAGIC_STR, length, key)
+    header = struct.pack("!4s3s1s", "HDR2", struct.pack(
+        "!i", length)[-3:], struct.pack("!i", key)[-1:])
 
     for i in xrange(0, length):
         byte = content[i]
